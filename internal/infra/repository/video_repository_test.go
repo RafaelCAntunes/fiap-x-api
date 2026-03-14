@@ -2,9 +2,7 @@ package repository
 
 import (
 	"fiap-x-api/internal/domain"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/glebarez/sqlite"
@@ -43,30 +41,36 @@ func TestPostgresVideoRepository_Create(t *testing.T) {
 }
 
 func TestVideoRepository_Queries(t *testing.T) {
-	dbName := fmt.Sprintf("file:memdb_%d?mode=memory&cache=shared", time.Now().UnixNano())
-	db, _ := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	db.AutoMigrate(&domain.Video{})
 
 	repo := NewPostgresVideoRepository(db)
 	videoID := "uuid-test"
 
-	v := &domain.Video{
-		ID:     videoID,
-		Status: "PENDING",
-		UserID: "user-123",
-	}
-	db.Create(v)
-
 	t.Run("Fluxo de busca e atualização", func(t *testing.T) {
+		testVideo := &domain.Video{
+			ID:     videoID,
+			Status: "PENDING",
+			UserID: "user-123",
+		}
+		err := db.Create(testVideo).Error
+		assert.NoError(t, err)
 		found, err := repo.FindByID(videoID)
 
 		assert.NoError(t, err)
-		if assert.NotNil(t, found) {
+		assert.NotNil(t, found)
+
+		if found != nil {
 			assert.Equal(t, "PENDING", found.Status)
 
+			// Testar atualização
 			found.Status = "COMPLETED"
 			err = repo.Update(found)
 			assert.NoError(t, err)
+
+			// Verificar se persistiu
+			updated, _ := repo.FindByID(videoID)
+			assert.Equal(t, "COMPLETED", updated.Status)
 		}
 	})
 }

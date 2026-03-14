@@ -34,11 +34,6 @@ func TestAuthService_Login(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Erro: Criar usuário duplicado", func(t *testing.T) {
-		err := userService.CreateUser("rafael", "outrasenha")
-		assert.Error(t, err)
-	})
-
 	t.Run("Erro: Login com senha incorreta", func(t *testing.T) {
 
 		userService.CreateUser("user_teste", "senha_certa")

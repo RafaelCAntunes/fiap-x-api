@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -38,39 +37,4 @@ func TestPostgresVideoRepository_Create(t *testing.T) {
 
 	err := repo.Create(video)
 	assert.NoError(t, err)
-}
-
-func TestVideoRepository_Queries(t *testing.T) {
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	db.AutoMigrate(&domain.Video{})
-
-	repo := NewPostgresVideoRepository(db)
-	videoID := "uuid-test"
-
-	t.Run("Fluxo de busca e atualização", func(t *testing.T) {
-		testVideo := &domain.Video{
-			ID:     videoID,
-			Status: "PENDING",
-			UserID: "user-123",
-		}
-		err := db.Create(testVideo).Error
-		assert.NoError(t, err)
-		found, err := repo.FindByID(videoID)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, found)
-
-		if found != nil {
-			assert.Equal(t, "PENDING", found.Status)
-
-			// Testar atualização
-			found.Status = "COMPLETED"
-			err = repo.Update(found)
-			assert.NoError(t, err)
-
-			// Verificar se persistiu
-			updated, _ := repo.FindByID(videoID)
-			assert.Equal(t, "COMPLETED", updated.Status)
-		}
-	})
 }

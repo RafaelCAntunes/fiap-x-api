@@ -46,19 +46,27 @@ func TestVideoRepository_Queries(t *testing.T) {
 	dbName := fmt.Sprintf("file:memdb_%d?mode=memory&cache=shared", time.Now().UnixNano())
 	db, _ := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	db.AutoMigrate(&domain.Video{})
-	repo := NewPostgresVideoRepository(db)
 
-	video := &domain.Video{ID: "uuid-test", UserID: "user-123", Status: domain.StatusPending}
-	db.Create(video)
+	repo := NewPostgresVideoRepository(db)
+	videoID := "uuid-test"
+
+	v := &domain.Video{
+		ID:     videoID,
+		Status: "PENDING",
+		UserID: "user-123",
+	}
+	db.Create(v)
 
 	t.Run("Fluxo de busca e atualização", func(t *testing.T) {
-		res, _ := repo.FindByID("uuid-test")
-		assert.NotNil(t, res)
+		found, err := repo.FindByID(videoID)
 
-		res.Status = domain.StatusCompleted
-		repo.Update(res)
+		assert.NoError(t, err)
+		if assert.NotNil(t, found) {
+			assert.Equal(t, "PENDING", found.Status)
 
-		final, _ := repo.FindByID("uuid-test")
-		assert.Equal(t, domain.StatusCompleted, final.Status)
+			found.Status = "COMPLETED"
+			err = repo.Update(found)
+			assert.NoError(t, err)
+		}
 	})
 }

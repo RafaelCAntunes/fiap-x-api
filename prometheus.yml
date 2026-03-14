@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 25s # Frequência de coleta
+
+scrape_configs:
+  - job_name: 'fiap-x-api'
+    static_configs:
+      - targets: ['api:8080'] 
+
+  - job_name: 'fiap-x-worker'
+    static_configs:
+      - targets: ['worker:8081'] 

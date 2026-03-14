@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>FIAP X - Login</title>
+    <style>
+        body { font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; }
+        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>🔐 Login FIAP X</h2>
+        <input type="text" id="user" placeholder="Usuário">
+        <input type="password" id="pass" placeholder="Senha">
+        <button onclick="login()">Entrar</button>
+        <p id="msg" style="color: red; font-size: 12px;"></p>
+    </div>
+
+    <script>
+        async function login() {
+            const username = document.getElementById('user').value;
+            const password = document.getElementById('pass').value;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/'; 
+                } else {
+                    document.getElementById('msg').innerText = data.error;
+                }
+            } catch (e) {
+                alert("Erro ao conectar com o servidor");
+            }
+        }
+    </script>
+</body>
+</html>

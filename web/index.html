@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIAP X - Video Processor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 80%; max-width: 900px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 50px; }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .upload-section { margin-bottom: 30px; padding: 20px; border: 2px dashed #007bff; border-radius: 8px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th:nth-child(1), td:nth-child(1) { width: 15%; } /* ID (curto) */
+        th:nth-child(2), td:nth-child(2) { width: 35%; } /* Nome do Arquivo (longo) */
+        th:nth-child(3), td:nth-child(3) { width: 20%; } /* Status */
+        th:nth-child(4), td:nth-child(4) { width: 20%; } /* Ação */
+        /* Efeito de hover para ler o nome completo se estiver cortado */
+        td:nth-child(2):hover { white-space: normal; word-break: break-all; cursor: help; }
+        th { background-color: #007bff; color: white; }
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 0.9em; font-weight: bold; }
+        .status-pending { background: #ffeeba; color: #856404; }
+        .status-processing { background: #bee5eb; color: #0c5460; }
+        .status-completed { background: #c3e6cb; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .btn-download { text-decoration: none; background: #28a745; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85em; transition: 0.3s; }
+        .btn-download:hover { background: #218838; }
+        #logout { float: right; cursor: pointer; color: red; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <span id="logout" onclick="logout()">Sair</span>
+    <h2>🎬 FIAP X - Processador de Vídeos</h2>
+
+    <div class="upload-section">
+        <input type="file" id="videoFile" accept="video/mp4">
+        <button onclick="uploadVideo()">Enviar Vídeo</button>
+        <p id="uploadStatus"></p>
+    </div>
+
+    <h3>Meus Processamentos</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID do Vídeo</th>
+                <th>Nome do Arquivo</th>
+                <th>Status</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody id="videoTableBody">
+            </tbody>
+    </table>
+</div>
+
+<script>
+   
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login-page';
+
+    function logout() {
+        localStorage.removeItem('token');
+        window.location.href = '/login-page';
+    }
+
+    async function uploadVideo() {
+        const fileInput = document.getElementById('videoFile');
+        const statusP = document.getElementById('uploadStatus');
+        
+        if (!fileInput.files[0]) {
+            alert("Por favor, selecione um arquivo!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('video', fileInput.files[0]);
+
+        statusP.innerText = "Enviando...";
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+
+            if (response.ok) {
+                statusP.innerText = "✅ Upload realizado com sucesso! Processamento iniciado.";
+                fileInput.value = '';
+                loadVideos(); // Recarrega a lista
+            } else {
+                statusP.innerText = "❌ Erro no upload. Verifique o tamanho ou formato.";
+            }
+        } catch (err) {
+            statusP.innerText = "❌ Er de conexão com o servidor.";
+        }
+    }
+
+    async function loadVideos() {
+        try {
+            const response = await fetch('/status', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+
+            if (response.status === 401) {
+            console.error("Token inválido ou expirado");
+            window.location.href = '/login-page';
+            return;
+        }
+
+            const result = await response.json();
+    
+            const videos = result.data;
+            
+            console.log("Vídeos recebidos:", videos);
+
+            const tbody = document.getElementById('videoTableBody');
+            tbody.innerHTML = '';
+
+            videos.forEach(v => {
+                const tr = document.createElement('tr');
+                
+                let statusClass = 'status-' + v.status.toLowerCase();
+                let actionHtml = '-';
+
+                // Se completou, libera o botão de download
+                if (v.status === 'COMPLETED') {
+                        actionHtml = `<button onclick="downloadFile('${v.id}')" class="btn-download">Download</button>`; }
+
+                tr.innerHTML = `
+                    <td><code>${v.id}</code></td>
+                     <td><code>${v.file_name}</code></td>
+                    <td><span class="status-badge ${statusClass}">${v.status}</span></td>
+                    <td>${actionHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error("Erro ao carregar vídeos:", err);
+        }
+    }
+
+    async function downloadFile(id) {
+    try {
+        const response = await fetch(`/download/${id}`, {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (!response.ok) throw new Error("Erro ao baixar");
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `processado_${id}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (err) {
+        alert("Falha no download: " + err.message);
+    }
+    }   
+
+    
+
+    // Atualiza a lista a cada 5 segundos para acompanhar o progresso do Worker
+    loadVideos();
+    setInterval(loadVideos, 5000);
+
+</script>
+
+</body>
+</html>

@@ -20,7 +20,6 @@ type PostgresConfig struct {
 func NewPostgresConnection(cfg PostgresConfig) *gorm.DB {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
-	log.Println("dsn montado para logar no RDS: ", dsn)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Falha ao conectar no banco de dados:", err)

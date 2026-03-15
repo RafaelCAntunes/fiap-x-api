@@ -19,6 +19,8 @@ WORKDIR /root/
 
 COPY --from=builder /app/main .
 
+COPY --from=builder /app/web ./web
+
 COPY --from=builder /app/main .
 RUN chmod +x ./main
 

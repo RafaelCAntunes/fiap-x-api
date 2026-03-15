@@ -41,13 +41,37 @@ jobs:
           ECR_REPOSITORY: fiap-x-api
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Build com as duas tags
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # Push de ambas
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # Passa a URL da imagem para o próximo step
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Deploy to Amazon ECS
         run: |
           aws ecs update-service --cluster fiap-cluster --service api-service --force-new-deployment
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition api-task --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: api-service
+          cluster: fiap-cluster
+          wait-for-service-stability: true

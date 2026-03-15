@@ -75,4 +75,3 @@ jobs:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: api-service
           cluster: fiap-cluster
-          wait-for-service-stability: true

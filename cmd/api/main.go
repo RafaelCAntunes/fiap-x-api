@@ -22,7 +22,7 @@ func main() {
 		User:     cfg.DBUser,
 		Password: cfg.DBPassword,
 		DBName:   cfg.DBName,
-		SSLMode:  "required",
+		SSLMode:  "require",
 	}
 
 	db := repository.NewPostgresConnection(pgConfig)

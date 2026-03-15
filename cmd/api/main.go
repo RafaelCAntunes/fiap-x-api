@@ -71,6 +71,12 @@ func main() {
 
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "UP",
+		})
+	})
+
 	r.GET("/login-page", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "login.html", nil)
 	})

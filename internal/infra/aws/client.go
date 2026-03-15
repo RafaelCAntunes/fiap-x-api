@@ -12,10 +12,8 @@ import (
 
 func NewAWSConfig(local bool) (aws.Config, error) {
 	ctx := context.TODO()
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		region = "us-east-1"
-	}
+	region := "us-east-1"
+	
 
 	if local {
 		awsEndpoint := os.Getenv("AWS_ENDPOINT")
